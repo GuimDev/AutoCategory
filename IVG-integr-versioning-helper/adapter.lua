@@ -5,6 +5,7 @@ local adapter
 local LEFT_PADDING = 25
 
 local MAX_FADE_VALUE = 64
+local ANIMATE_INSTANTLY = true
 
 local function UpdateScrollFade(useFadeGradient, scroll, slider, sliderValue)
     if(useFadeGradient) then

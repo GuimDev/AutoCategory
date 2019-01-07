@@ -30,7 +30,11 @@ local function UpdateScrollFade(useFadeGradient, scroll, slider, sliderValue)
 end
 
 local function AreSelectionsEnabled(self)
-    return self.selectionTemplate or self.selectionCallback
+    if self.selectionTemplate or self.selectionCallback then
+        return true
+    else
+        return false
+    end
 end
 
 local function RemoveAnimationOnControl(control, animationFieldName, animateInstantly)

@@ -4,19 +4,21 @@ local settings
 local adapter
 local LEFT_PADDING = 25
 
+local MAX_FADE_VALUE = 64
+
 local function UpdateScrollFade(useFadeGradient, scroll, slider, sliderValue)
     if(useFadeGradient) then
         local sliderMin, sliderMax = slider:GetMinMax()
         sliderValue = sliderValue or slider:GetValue()
 
         if(sliderValue > sliderMin) then
-            scroll:SetFadeGradient(1, 0, 1, zo_min(sliderValue - sliderMin, 64))
+            scroll:SetFadeGradient(1, 0, 1, zo_min(sliderValue - sliderMin, MAX_FADE_VALUE))
         else
             scroll:SetFadeGradient(1, 0, 0, 0)
         end
 
         if(sliderValue < sliderMax) then
-            scroll:SetFadeGradient(2, 0, -1, zo_min(sliderMax - sliderValue, 64))
+            scroll:SetFadeGradient(2, 0, -1, zo_min(sliderMax - sliderValue, MAX_FADE_VALUE))
         else
             scroll:SetFadeGradient(2, 0, 0, 0);
         end

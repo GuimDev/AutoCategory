@@ -66,10 +66,6 @@ local function ReshapeSlot(control, isGrid, width, height)
         end
 
         if new then new:ClearAnchors() end
-        
-        --disable status' mouse callback
-        new:SetMouseEnabled(false)
-        new:GetNamedChild("Texture"):SetMouseEnabled(false)
 
         control:SetDimensions(width, height)
 
@@ -78,6 +74,10 @@ local function ReshapeSlot(control, isGrid, width, height)
 
             new:SetAnchor(TOPLEFT, button:GetNamedChild("Icon"), TOPLEFT, 0, 0)
             new:SetDrawTier(2)
+
+            --disable mouse events on status controls
+            new:SetMouseEnabled(false)
+            new:GetNamedChild("Texture"):SetMouseEnabled(false)
 
             name:SetHidden(true)
             --stat:SetHidden(true)
@@ -102,7 +102,11 @@ local function ReshapeSlot(control, isGrid, width, height)
 
             if button then button:SetAnchor(CENTER, control, TOPLEFT, 47, 26) end
 
-            if new then new:SetAnchor(CENTER, control, TOPLEFT, 20, 27) end
+            if new then
+                --enable mouse events on status controls
+                new:SetMouseEnabled(true)
+                new:GetNamedChild("Texture"):SetMouseEnabled(true)
+            end
 
             if name then name:SetHidden(false) end
             --if stat then stat:SetHidden(false) end

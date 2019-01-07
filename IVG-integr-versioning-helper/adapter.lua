@@ -1,6 +1,8 @@
+local IGV = InventoryGridView
 local util
 local settings
 local adapter
+local LEFT_PADDING = 25
 
 local function UpdateScrollFade(useFadeGradient, scroll, slider, sliderValue)
     if(useFadeGradient) then
@@ -175,36 +177,36 @@ local function IGV_ScrollList_UpdateScroll_Grid(self)
     --Added------------------------------------------------------------------
     local scrollableDistance = 0
     local foundSelected = false
-	local currentY = 0
-	local lastIndex = 1
+    local currentY = 0
+    local lastIndex = 1
     local gridIconSize = settings.GetGridIconSize()
     local contentsWidth = self.contents:GetWidth()
     local contentsWidthMinusPadding = contentsWidth - LEFT_PADDING
     local itemsPerRow = zo_floor(contentsWidthMinusPadding / gridIconSize)
     local gridSpacing = .5
-	local totalControlWidth = gridIconSize + gridSpacing
-	for i = 1,#self.data do
-		local currentData = self.data[i]
-		if currentData.isHeader then
-			--Y add header's height
-			if i ~= 1 then
-				--next row
-				currentY = currentY + totalControlWidth *  (zo_floor((i - 1 - lastIndex) / itemsPerRow)  + 1)
-			end
-			lastIndex = i + 1 
-			currentData.top = currentY	
-			currentData.bottom = currentY + 40
-			currentData.left = LEFT_PADDING
-			currentY = currentY + 40
-		else 
-			currentData.top = zo_floor((i - lastIndex) / itemsPerRow) * totalControlWidth + currentY
-			--d(currentData.top)
-			currentData.bottom = currentData.top + totalControlWidth
-			currentData.left = (i - lastIndex) % itemsPerRow * totalControlWidth + LEFT_PADDING 
-		end 
-	end
-	currentY = currentY + totalControlWidth *  (zo_floor((#self.data - 1 - lastIndex) / itemsPerRow)  + 1)
-	scrollableDistance = currentY - windowHeight
+    local totalControlWidth = gridIconSize + gridSpacing
+    for i = 1,#self.data do
+        local currentData = self.data[i]
+        if currentData.isHeader then
+            --Y add header's height
+            if i ~= 1 then
+                --next row
+                currentY = currentY + totalControlWidth *  (zo_floor((i - 1 - lastIndex) / itemsPerRow)  + 1)
+            end
+            lastIndex = i + 1 
+            currentData.top = currentY  
+            currentData.bottom = currentY + 40
+            currentData.left = LEFT_PADDING
+            currentY = currentY + 40
+        else 
+            currentData.top = zo_floor((i - lastIndex) / itemsPerRow) * totalControlWidth + currentY
+            --d(currentData.top)
+            currentData.bottom = currentData.top + totalControlWidth
+            currentData.left = (i - lastIndex) % itemsPerRow * totalControlWidth + LEFT_PADDING 
+        end 
+    end
+    currentY = currentY + totalControlWidth *  (zo_floor((#self.data - 1 - lastIndex) / itemsPerRow)  + 1)
+    scrollableDistance = currentY - windowHeight
 
     ResizeScrollBar(self, scrollableDistance)
     ----------------------------------------------------------------------------
@@ -214,7 +216,7 @@ local function IGV_ScrollList_UpdateScroll_Grid(self)
     local offset = self.offset
 
     UpdateScrollFade(self.useFadeGradient, self.contents, self.scrollbar, offset)
-	
+    
     --remove active controls that are now hidden
     local i = 1
     local numActive = #activeControls
@@ -250,7 +252,7 @@ local function IGV_ScrollList_UpdateScroll_Grid(self)
     if dataEntry then
         --removed isUniform check because we're assuming always uniform
         controlTop = dataEntry.top
-		controlLeft = dataEntry.left
+        controlLeft = dataEntry.left
     end
     ----------------------------------------------------------------------------
     while(dataEntry and controlTop <= bottomEdge) do
@@ -277,9 +279,9 @@ local function IGV_ScrollList_UpdateScroll_Grid(self)
             end
 
             --even uniform active controls need to know their position to determine if they are still active
-			--Modified-------------------------------------------------------------- 
-		 
-			------------------------------------------------------------------------
+            --Modified-------------------------------------------------------------- 
+         
+            ------------------------------------------------------------------------
         end
         i = i + 1
         visibleDataIndex = visibleData[i]
@@ -288,7 +290,7 @@ local function IGV_ScrollList_UpdateScroll_Grid(self)
         if(dataEntry) then
             --removed isUniform check because we're assuming always uniform
             controlTop = dataEntry.top
-			controlLeft = dataEntry.left
+            controlLeft = dataEntry.left
         end
         ------------------------------------------------------------------------
     end
@@ -344,7 +346,7 @@ function adapter_ToggleGrid()
 
     util.ReshapeSlots()
     freeActiveScrollListControls(scrollList)
-	ZO_ScrollList_Commit(scrollList)
+    ZO_ScrollList_Commit(scrollList)
     ZO_ScrollList_UpdateScroll(scrollList)
 
     if isGrid then
@@ -355,17 +357,4 @@ function adapter_ToggleGrid()
 
     ZO_ScrollList_RefreshVisible(scrollList)
     util.ReshapeSlots()
-end
-
-function IntegrateInventoryGridView()
-	if InventoryGridView ~= nil and IGV ~= nil then
-			
-		util = IGV.util
-		settings = IGV.settings
-		adapter = IGV.adapter
-		--integrate
-		InventoryGridView.adapter.ScrollController = adapter_ScrollController
-		
-		InventoryGridView.adapter.ToggleGrid = adapter_ToggleGrid
-	end
 end

@@ -1,9 +1,3 @@
-local IGV = InventoryGridView
-IGV.util = {}
-
-local util = IGV.util
-util.lam = LibStub("LibAddonMenu-2.0")
-
 local function AddColor(control)
     if not control.dataEntry then return end
     if control.dataEntry.data.slotIndex == nil then control.dataEntry.data.quality = 0 end
@@ -21,10 +15,11 @@ local function AddColor(control)
     control:GetNamedChild("Highlight"):SetColor(r, g, b, 0)
 end
 
---control = ZO_PlayerInventoryBackpack1Row1 etc.
 local oldSetHidden
 local function ReshapeSlot(control, isGrid, width, height)
     if control == nil then return end
+    if control.dataEntry == nil or control.dataEntry.isHeader then return end
+    if height == nil then height = 52 end
 
     local ICON_MULT = 0.77
     local textureSet = IGV.settings.GetTextureSet()
@@ -71,6 +66,10 @@ local function ReshapeSlot(control, isGrid, width, height)
         end
 
         if new then new:ClearAnchors() end
+        
+        --disable status' mouse callback
+        new:SetMouseEnabled(false)
+        new:GetNamedChild("Texture"):SetMouseEnabled(false)
 
         control:SetDimensions(width, height)
 
@@ -124,7 +123,7 @@ local function ReshapeSlot(control, isGrid, width, height)
     end
 end
 
-function util.ReshapeSlots()
+function util_ReshapeSlots()
     local scrollList = IGV.currentScrollList
     if not scrollList then return end
     local parent = scrollList.contents
@@ -140,6 +139,7 @@ function util.ReshapeSlots()
         height = gridIconSize
     else
         width = scrollList:GetWidth()
+    scrollList.controlHeight = 52
         height = scrollList.controlHeight
     end
 

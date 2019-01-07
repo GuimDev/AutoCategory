@@ -72,8 +72,9 @@ local function ReshapeSlot(control, isGrid, width, height)
         if isGrid == true and new ~= nil then
             button:SetAnchor(CENTER, control, CENTER)
 
-            new:SetAnchor(TOPLEFT, button:GetNamedChild("Icon"), TOPLEFT, 0, 0)
-            new:SetDrawTier(2)
+            new:SetDimensions(25, 25)
+            new:SetAnchor(TOPLEFT, button:GetNamedChild("Icon"), TOPLEFT, -5, -5)
+            new:SetDrawTier(DT_HIGH)
 
             --disable mouse events on status controls
             new:SetMouseEnabled(false)
@@ -100,9 +101,12 @@ local function ReshapeSlot(control, isGrid, width, height)
             local LIST_SLOT_BACKGROUND = "EsoUI/Art/Miscellaneous/listItem_backdrop.dds"
             local LIST_SLOT_HOVER = "EsoUI/Art/Miscellaneous/listitem_highlight.dds"
 
-            if button then button:SetAnchor(CENTER, control, TOPLEFT, 47, 26) end
+            if button then button:SetAnchor(CENTER, control, TOPLEFT, 70, 26) end
 
             if new then
+                new:SetDimensions(32, 32)
+                new:SetAnchor(CENTER, control, TOPLEFT, 20, 27)
+
                 --enable mouse events on status controls
                 new:SetMouseEnabled(true)
                 new:GetNamedChild("Texture"):SetMouseEnabled(true)

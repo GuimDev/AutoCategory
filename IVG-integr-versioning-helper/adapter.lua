@@ -1,15 +1,6 @@
-local IGV = InventoryGridView
-IGV.adapter = {}
-
-local util = IGV.util
-local settings = IGV.settings
-local adapter = IGV.adapter
-
-local LEFT_PADDING = 25
---[[----------------------------------------------------------------------------
-    Ported ZOS code from esoui\libraries\zo_templates\scrolltemplates.lua
---]]----------------------------------------------------------------------------
-local ANIMATE_INSTANTLY = true
+local util
+local settings
+local adapter
 
 local function UpdateScrollFade(useFadeGradient, scroll, slider, sliderValue)
     if(useFadeGradient) then
@@ -163,35 +154,57 @@ local function FindStartPoint(self, topEdge)
     end
 end
 
---[[----------------------------------------------------------------------------
-    Modified version of ZO_ScrollList_UpdateScroll(self) from
-    esoui\libraries\zo_templates\scrolltemplates.lua
---]]----------------------------------------------------------------------------
-local consideredMap = {}
-local function IGV_ScrollList_UpdateScroll_Grid(self)
-    local windowHeight = ZO_ScrollList_GetHeight(self)
 
-    --Added---------------------------------------------------------------------
+local function freeActiveScrollListControls(scrollList)
+    if not scrollList or not scrollList.activeControls then return end
+
+    while #scrollList.activeControls > 0 do
+        FreeActiveScrollListControl(scrollList, 1)
+    end
+end
+------------------------copied end--------------------------
+
+
+ 
+------------------------modified begin--------------------------
+
+local consideredMap = {}
+local function IGV_ScrollList_UpdateScroll_Grid(self) 
+    local windowHeight = ZO_ScrollList_GetHeight(self)
+   
+    --Added------------------------------------------------------------------
+    local scrollableDistance = 0
+    local foundSelected = false
+	local currentY = 0
+	local lastIndex = 1
     local gridIconSize = settings.GetGridIconSize()
     local contentsWidth = self.contents:GetWidth()
     local contentsWidthMinusPadding = contentsWidth - LEFT_PADDING
     local itemsPerRow = zo_floor(contentsWidthMinusPadding / gridIconSize)
-    local numControls = #self.data or 0
-    local numRows = zo_ceil(numControls / itemsPerRow)
     local gridSpacing = .5
-    local totalControlHeight = gridIconSize * numRows
-    local totalSpacingHeight = gridSpacing * (numRows - 1)
-    local scrollableDistance = (totalControlHeight + totalSpacingHeight) - windowHeight
-
-    local function GetTargetTopAndLeftPositions(viewIndex)
-        local totalControlWidth = gridIconSize + gridSpacing
-        local controlTop = zo_floor((viewIndex - 1) / itemsPerRow) * totalControlWidth
-        local controlLeft = ((viewIndex - 1) % itemsPerRow) * totalControlWidth + LEFT_PADDING
-
-        return controlTop, controlLeft
-    end
-
-    self.controlHeight = gridIconSize
+	local totalControlWidth = gridIconSize + gridSpacing
+	for i = 1,#self.data do
+		local currentData = self.data[i]
+		if currentData.isHeader then
+			--Y add header's height
+			if i ~= 1 then
+				--next row
+				currentY = currentY + totalControlWidth *  (zo_floor((i - 1 - lastIndex) / itemsPerRow)  + 1)
+			end
+			lastIndex = i + 1 
+			currentData.top = currentY	
+			currentData.bottom = currentY + 40
+			currentData.left = LEFT_PADDING
+			currentY = currentY + 40
+		else 
+			currentData.top = zo_floor((i - lastIndex) / itemsPerRow) * totalControlWidth + currentY
+			--d(currentData.top)
+			currentData.bottom = currentData.top + totalControlWidth
+			currentData.left = (i - lastIndex) % itemsPerRow * totalControlWidth + LEFT_PADDING 
+		end 
+	end
+	currentY = currentY + totalControlWidth *  (zo_floor((#self.data - 1 - lastIndex) / itemsPerRow)  + 1)
+	scrollableDistance = currentY - windowHeight
 
     ResizeScrollBar(self, scrollableDistance)
     ----------------------------------------------------------------------------
@@ -201,7 +214,7 @@ local function IGV_ScrollList_UpdateScroll_Grid(self)
     local offset = self.offset
 
     UpdateScrollFade(self.useFadeGradient, self.contents, self.scrollbar, offset)
-
+	
     --remove active controls that are now hidden
     local i = 1
     local numActive = #activeControls
@@ -236,7 +249,8 @@ local function IGV_ScrollList_UpdateScroll_Grid(self)
 
     if dataEntry then
         --removed isUniform check because we're assuming always uniform
-        controlTop, controlLeft = GetTargetTopAndLeftPositions(i)
+        controlTop = dataEntry.top
+		controlLeft = dataEntry.left
     end
     ----------------------------------------------------------------------------
     while(dataEntry and controlTop <= bottomEdge) do
@@ -259,19 +273,13 @@ local function IGV_ScrollList_UpdateScroll_Grid(self)
             consideredMap[dataEntry] = true
 
             if(AreDataEqualSelections(self, dataEntry.data, self.selectedData)) then
-                SelectControl(self, control)
+                SelectControl(self, control, ANIMATE_INSTANTLY)
             end
 
             --even uniform active controls need to know their position to determine if they are still active
-            --Modified----------------------------------------------------------
-            --removed isUniform check because we're assuming always uniform
-            dataEntry.top = controlTop
-            dataEntry.bottom = controlTop + controlHeight
-            --------------------------------------------------------------------
-            --Added-------------------------------------------------------------
-            dataEntry.left = controlLeft
-            dataEntry.right = controlLeft + gridIconSize
-            --------------------------------------------------------------------
+			--Modified-------------------------------------------------------------- 
+		 
+			------------------------------------------------------------------------
         end
         i = i + 1
         visibleDataIndex = visibleData[i]
@@ -279,7 +287,8 @@ local function IGV_ScrollList_UpdateScroll_Grid(self)
         --Modified--------------------------------------------------------------
         if(dataEntry) then
             --removed isUniform check because we're assuming always uniform
-            controlTop, controlLeft = GetTargetTopAndLeftPositions(i)
+            controlTop = dataEntry.top
+			controlLeft = dataEntry.left
         end
         ------------------------------------------------------------------------
     end
@@ -307,138 +316,9 @@ local function IGV_ScrollList_UpdateScroll_Grid(self)
         consideredMap[k] = nil
     end
 end
+  
 
---[[----------------------------------------------------------------------------
-    Modified version of ZO_ItemTooltip_AddMoney(...) from
-    esoui\ingame\tooltip\tooltip.lua
---]]----------------------------------------------------------------------------
---Added currencyType parameter
-local privateKey = {}
-function ZO_ItemTooltip_AddMoney(tooltipControl, amount, reason, notEnough, currencyType)
-    local moneyLine = GetControl(tooltipControl, "SellPrice")
-    local reasonLabel = GetControl(moneyLine, "Reason")
-    local currencyControl = GetControl(moneyLine, "Currency")
-
-    --Added---------------------------------------------------------------------
-    local currencyType = currencyType or CURT_MONEY
-    --these is also from tooltip.lua, outside the function
-    local SELL_REASON_COLOR = ZO_ColorDef:New(GetInterfaceColor(INTERFACE_COLOR_TYPE_ITEM_TOOLTIP, ITEM_TOOLTIP_COLOR_SELLS_FOR))
-    local REASON_CURRENCY_SPACING = 3
-    local MONEY_LINE_HEIGHT = 18
-    local ITEM_TOOLTIP_CURRENCY_OPTIONS = {showTooltips = false,}
-    ----------------------------------------------------------------------------
-
-    moneyLine:SetHidden(false)
-
-    local width = 0
-    reasonLabel:ClearAnchors()
-    currencyControl:ClearAnchors()
-
-    -- right now reason is always a string index
-    --Modified------------------------------------------------------------------
-    if reason == privateKey and amount > 0 then
-        reasonLabel:SetAnchor(TOPLEFT, nil, TOPLEFT, 0, 0)
-        currencyControl:SetAnchor(TOPLEFT, reasonLabel, TOPRIGHT, REASON_CURRENCY_SPACING)
-
-        reasonLabel:SetHidden(false)
-        reasonLabel:SetColor(SELL_REASON_COLOR:UnpackRGBA())
-        reasonLabel:SetText(GetString(SI_STORE_SORT_TYPE_PRICE)..":")
-
-        local reasonTextWidth, reasonTextHeight = reasonLabel:GetTextDimensions()
-        width = width + reasonTextWidth + REASON_CURRENCY_SPACING
-    elseif reason and reason ~= 0 and reason ~= privateKey then
-    ----------------------------------------------------------------------------
-        reasonLabel:SetAnchor(TOPLEFT, nil, TOPLEFT, 0, 0)
-        currencyControl:SetAnchor(TOPLEFT, reasonLabel, TOPRIGHT, REASON_CURRENCY_SPACING, -5)
-
-        reasonLabel:SetHidden(false)
-        reasonLabel:SetColor(SELL_REASON_COLOR:UnpackRGBA())
-        reasonLabel:SetText(GetString(reason))
-
-        local reasonTextWidth, reasonTextHeight = reasonLabel:GetTextDimensions()
-        width = width + reasonTextWidth + REASON_CURRENCY_SPACING
-    else
-        reasonLabel:SetHidden(true)
-        currencyControl:SetAnchor(TOPLEFT, nil, TOPLEFT, 0, 0)
-    end
-
-    if amount > 0 then
-        currencyControl:SetHidden(false)
-        --Modified--------------------------------------------------------------
-        ZO_CurrencyControl_SetSimpleCurrency(currencyControl, currencyType,
-            amount, ITEM_TOOLTIP_CURRENCY_OPTIONS, CURRENCY_DONT_SHOW_ALL, notEnough)
-        ------------------------------------------------------------------------
-        width = width + currencyControl:GetWidth()
-    else
-        currencyControl:SetHidden(true)
-    end
-
-    tooltipControl:AddControl(moneyLine)
-    moneyLine:SetAnchor(CENTER)
-    moneyLine:SetDimensions(width, MONEY_LINE_HEIGHT)
-end
-
---[[----------------------------------------------------------------------------
-    Our own code
---]]----------------------------------------------------------------------------
-local function AddCurrency(rowControl)
-    if not rowControl.dataEntry then return end
-
-    local IGVId = IGV.currentIGVId
-    local slotIndex = rowControl.dataEntry.data.slotIndex
-    local _, stack, sellPrice, currencyType, notEnough
-
-    if IGVId == IGVID_STORE then
-        for _, v in pairs(rowControl:GetNamedChild("SellPrice").currencyArgs) do
-            if v.isUsed == true then
-                currencyType = v.type
-                notEnough = v.notEnough
-            end
-        end
-
-        if currencyType == CURT_MONEY then
-            sellPrice = rowControl.dataEntry.data.price
-        else
-            sellPrice = rowControl.dataEntry.data.currencyQuantity1
-        end
-
-        --bandaid catch all for sellPrice == nil
-        sellPrice = sellPrice or 0
-
-        stack = rowControl.dataEntry.data.stack
-
-        ZO_ItemTooltip_AddMoney(ItemTooltip, sellPrice * stack, privateKey, notEnough, currencyType)
-    else
-        local bagId = rowControl.dataEntry.data.bagId
-        if not bagId then return end
-
-        _, stack, sellPrice = GetItemInfo(bagId, slotIndex)
-
-        ZO_ItemTooltip_AddMoney(ItemTooltip, sellPrice * stack, privateKey)
-    end
-end
-
-function adapter.AddCurrencySoon(rowControl)
-    if not rowControl and not rowControl.isGrid then return end
-
-    if IGV.currentIGVId == IGVID_CRAFT_BAG or IGV.currentIGVId == IGVID_STORE then
-        local function wrapper()
-            AddCurrency(rowControl)
-        end
-
-        zo_callLater(wrapper, 50)
-    end
-end
-
-local function freeActiveScrollListControls(scrollList)
-    if not scrollList or not scrollList.activeControls then return end
-
-    while #scrollList.activeControls > 0 do
-        FreeActiveScrollListControl(scrollList, 1)
-    end
-end
-
-function adapter.ScrollController(self)
+function adapter_ScrollController(self)
     if self == IGV.currentScrollList and settings.IsGrid(IGV.currentIGVId) then
         freeActiveScrollListControls(self)
         IGV_ScrollList_UpdateScroll_Grid(self)
@@ -450,7 +330,8 @@ function adapter.ScrollController(self)
     end
 end
 
-function adapter.ToggleGrid()
+
+function adapter_ToggleGrid()
     local IGVId = IGV.currentIGVId
     local scrollList = IGV.currentScrollList
 
@@ -463,7 +344,7 @@ function adapter.ToggleGrid()
 
     util.ReshapeSlots()
     freeActiveScrollListControls(scrollList)
-
+	ZO_ScrollList_Commit(scrollList)
     ZO_ScrollList_UpdateScroll(scrollList)
 
     if isGrid then
@@ -474,4 +355,17 @@ function adapter.ToggleGrid()
 
     ZO_ScrollList_RefreshVisible(scrollList)
     util.ReshapeSlots()
+end
+
+function IntegrateInventoryGridView()
+	if InventoryGridView ~= nil and IGV ~= nil then
+			
+		util = IGV.util
+		settings = IGV.settings
+		adapter = IGV.adapter
+		--integrate
+		InventoryGridView.adapter.ScrollController = adapter_ScrollController
+		
+		InventoryGridView.adapter.ToggleGrid = adapter_ToggleGrid
+	end
 end

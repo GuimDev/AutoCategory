@@ -1,6 +1,34 @@
 --[[
 Integration with Inventory Grid View
 
+UPDATED & Improved By : Provision (watch the update : https://github.com/GuimDev/AutoCategory/commits/master/AutoCategory_Integrations_Inventory_Grid_View.lua )
+
+FOR UPDATE THIS FILE, HELP YOU OF WITH : IGV diff changes on github (GuimDev/IVG-versioning).
+
+--------
+
+Changelog for util.lua & adapter.lua with date : https://github.com/GuimDev/IVG-versioning/wiki
+
+CHANGE v7 :
+ - v7 : Update modif with IGV 2.0.9 files (2.0.5 -> 2.0.9) :
+    - Fix traitInfo (2.0.9)
+    - icon position (2.0.6&2.0.9)
+    - prefere "disable status' mouse" fix (2.0.6) of the upstream (IGV)
+    - forgotten declaration `ANIMATE_INSTANTLY` (in v1)
+ - v6 : Fix last line (remove : "1 -" udapter.lua#215)
+ - v5 : Add settings
+ - v4 : Comment StatValue (2.0.8)
+ - v3 : Improve IntegrateInventoryGridView Controller
+ - v2: Add util.lua
+ - v1: First version
+
+
+CHANGE DETAILS :
+ - b7 : https://github.com/GuimDev/AutoCategory/commits/UpdateIVGwithHelper/IVG-integr-versioning-helper
+ - v1-6 : https://github.com/GuimDev/AutoCategory/commits/IVGintVersHelper/IVG-integr-versioning-helper
+
+------------------
+
 This file is copied from original file with some changes :
  - adapter.lua
  - util.lua
@@ -18,19 +46,22 @@ local settings
 local adapter
 local LEFT_PADDING = 25
 
+local MAX_FADE_VALUE = 64
+local ANIMATE_INSTANTLY = true
+
 local function UpdateScrollFade(useFadeGradient, scroll, slider, sliderValue)
     if(useFadeGradient) then
         local sliderMin, sliderMax = slider:GetMinMax()
         sliderValue = sliderValue or slider:GetValue()
 
         if(sliderValue > sliderMin) then
-            scroll:SetFadeGradient(1, 0, 1, zo_min(sliderValue - sliderMin, 64))
+            scroll:SetFadeGradient(1, 0, 1, zo_min(sliderValue - sliderMin, MAX_FADE_VALUE))
         else
             scroll:SetFadeGradient(1, 0, 0, 0)
         end
 
         if(sliderValue < sliderMax) then
-            scroll:SetFadeGradient(2, 0, -1, zo_min(sliderMax - sliderValue, 64))
+            scroll:SetFadeGradient(2, 0, -1, zo_min(sliderMax - sliderValue, MAX_FADE_VALUE))
         else
             scroll:SetFadeGradient(2, 0, 0, 0);
         end
@@ -41,7 +72,11 @@ local function UpdateScrollFade(useFadeGradient, scroll, slider, sliderValue)
 end
 
 local function AreSelectionsEnabled(self)
-    return self.selectionTemplate or self.selectionCallback
+    if self.selectionTemplate or self.selectionCallback then
+        return true
+    else
+        return false
+    end
 end
 
 local function RemoveAnimationOnControl(control, animationFieldName, animateInstantly)
@@ -191,44 +226,44 @@ local function IGV_ScrollList_UpdateScroll_Grid(self)
     --Added------------------------------------------------------------------
     local scrollableDistance = 0
     local foundSelected = false
-	local currentY = 0
-	local lastIndex = 1
+    local currentY = 0
+    local lastIndex = 1
     local gridIconSize = settings.GetGridIconSize()
     local isGrid = settings.IsGrid(IGVId)
-	if isGrid then
-		self.controlHeight = gridIconSize
-	else
-		self.controlHeight = 52
-	end
+    if isGrid then
+        self.controlHeight = gridIconSize
+    else
+        self.controlHeight = 52
+    end
     local contentsWidth = self.contents:GetWidth()
     local contentsWidthMinusPadding = contentsWidth - LEFT_PADDING
     local itemsPerRow = zo_floor(contentsWidthMinusPadding / gridIconSize)
     local gridSpacing = .5
-	local totalControlWidth = gridIconSize + gridSpacing
-	local headerRowHeight = AutoCategory.acctSavedVariables.appearance["CATEGORY_HEADER_HEIGHT"]
-	for i = 1,#self.data do
-		local currentData = self.data[i]
-		if currentData.isHeader then
-			--Y add header's height
-			if i ~= 1 then
-				--next row
-				currentY = currentY + totalControlWidth *  (zo_floor((i - 1 - lastIndex) / itemsPerRow)  + 1)
-			end
-			lastIndex = i + 1 
-			currentData.top = currentY	
-			currentData.bottom = currentY + headerRowHeight
-			currentData.left = LEFT_PADDING
-			currentY = currentY + headerRowHeight
-		else 
-			currentData.top = zo_floor((i - lastIndex) / itemsPerRow) * totalControlWidth + currentY
-			--d(currentData.top)
-			currentData.bottom = currentData.top + totalControlWidth
-			currentData.left = (i - lastIndex) % itemsPerRow * totalControlWidth + LEFT_PADDING 
-		end 
-	end
-	currentY = currentY + totalControlWidth *  (zo_floor((#self.data - lastIndex) / itemsPerRow)  + 1)
-	scrollableDistance = currentY - windowHeight
- 
+    local totalControlWidth = gridIconSize + gridSpacing
+    local headerRowHeight = AutoCategory.acctSavedVariables.appearance["CATEGORY_HEADER_HEIGHT"]
+    for i = 1,#self.data do
+        local currentData = self.data[i]
+        if currentData.isHeader then
+            --Y add header's height
+            if i ~= 1 then
+                --next row
+                currentY = currentY + totalControlWidth *  (zo_floor((i - 1 - lastIndex) / itemsPerRow)  + 1)
+            end
+            lastIndex = i + 1 
+            currentData.top = currentY  
+            currentData.bottom = currentY + headerRowHeight
+            currentData.left = LEFT_PADDING
+            currentY = currentY + headerRowHeight
+        else 
+            currentData.top = zo_floor((i - lastIndex) / itemsPerRow) * totalControlWidth + currentY
+            --d(currentData.top)
+            currentData.bottom = currentData.top + totalControlWidth
+            currentData.left = (i - lastIndex) % itemsPerRow * totalControlWidth + LEFT_PADDING 
+        end 
+    end
+    currentY = currentY + totalControlWidth *  (zo_floor((#self.data - lastIndex) / itemsPerRow)  + 1)
+    scrollableDistance = currentY - windowHeight
+
     ResizeScrollBar(self, scrollableDistance)
     ----------------------------------------------------------------------------
 
@@ -237,7 +272,7 @@ local function IGV_ScrollList_UpdateScroll_Grid(self)
     local offset = self.offset
 
     UpdateScrollFade(self.useFadeGradient, self.contents, self.scrollbar, offset)
-	
+    
     --remove active controls that are now hidden
     local i = 1
     local numActive = #activeControls
@@ -273,7 +308,7 @@ local function IGV_ScrollList_UpdateScroll_Grid(self)
     if dataEntry then
         --removed isUniform check because we're assuming always uniform
         controlTop = dataEntry.top
-		controlLeft = dataEntry.left
+        controlLeft = dataEntry.left
     end
     ----------------------------------------------------------------------------
     while(dataEntry and controlTop <= bottomEdge) do
@@ -300,9 +335,9 @@ local function IGV_ScrollList_UpdateScroll_Grid(self)
             end
 
             --even uniform active controls need to know their position to determine if they are still active
-			--Modified-------------------------------------------------------------- 
-		 
-			------------------------------------------------------------------------
+            --Modified-------------------------------------------------------------- 
+         
+            ------------------------------------------------------------------------
         end
         i = i + 1
         visibleDataIndex = visibleData[i]
@@ -311,7 +346,7 @@ local function IGV_ScrollList_UpdateScroll_Grid(self)
         if(dataEntry) then
             --removed isUniform check because we're assuming always uniform
             controlTop = dataEntry.top
-			controlLeft = dataEntry.left
+            controlLeft = dataEntry.left
         end
         ------------------------------------------------------------------------
     end
@@ -363,17 +398,17 @@ function adapter_ToggleGrid()
     settings.ToggleGrid(IGVId)
     local isGrid = settings.IsGrid(IGVId)
 
-	--change data.left 
-    for i = 1, #scrollList.data do				
-		local currentData = scrollList.data[i]
-		currentData.left = 0
-	end
-	
+    --change data.left 
+    for i = 1, #scrollList.data do              
+        local currentData = scrollList.data[i]
+        currentData.left = 0
+    end
+    
     ZO_ScrollList_ResetToTop(scrollList)
 
     util.ReshapeSlots()
     freeActiveScrollListControls(scrollList)
-	ZO_ScrollList_Commit(scrollList)
+    ZO_ScrollList_Commit(scrollList)
     ZO_ScrollList_UpdateScroll(scrollList)
 
     if isGrid then
@@ -421,8 +456,8 @@ end
 local oldSetHidden
 local function ReshapeSlot(control, isGrid, width, height)
     if control == nil then return end
-	if control.dataEntry == nil or control.dataEntry.isHeader then return end
-	if height == nil then height = 52 end
+    if control.dataEntry == nil or control.dataEntry.isHeader then return end
+    if height == nil then height = 52 end
 
     local ICON_MULT = 0.77
     local textureSet = IGV.settings.GetTextureSet()
@@ -437,6 +472,7 @@ local function ReshapeSlot(control, isGrid, width, height)
         local button = control:GetNamedChild("Button")
         local name = control:GetNamedChild("Name")
         local sell = control:GetNamedChild("SellPrice")
+        local traitInfo = control:GetNamedChild("TraitInfo")
         --local stat = control:GetNamedChild("StatValue")
 
         --make sure sell price label stays shown/hidden
@@ -469,18 +505,30 @@ local function ReshapeSlot(control, isGrid, width, height)
         end
 
         if new then new:ClearAnchors() end
-		
-		--disable status' mouse callback
-		new:SetMouseEnabled(false)
-		new:GetNamedChild("Texture"):SetMouseEnabled(false)
+
+        if isGrid and traitInfo ~= nil then
+            traitInfo:ClearAnchors()
+            traitInfo:SetDimensions(25, 25)
+            traitInfo:SetAnchor(TOPRIGHT, control, TOPRIGHT)
+            traitInfo:SetDrawTier(DT_HIGH)
+        elseif traitInfo ~= nil then
+            traitInfo:ClearAnchors()
+            traitInfo:SetDimensions(32, 32)
+            traitInfo:SetAnchor(RIGHT, sell, LEFT, -5)
+        end
 
         control:SetDimensions(width, height)
 
         if isGrid == true and new ~= nil then
             button:SetAnchor(CENTER, control, CENTER)
 
-            new:SetAnchor(TOPLEFT, button:GetNamedChild("Icon"), TOPLEFT, 0, 0)
-            new:SetDrawTier(2)
+            new:SetDimensions(25, 25)
+            new:SetAnchor(TOPLEFT, button:GetNamedChild("Icon"), TOPLEFT, -5, -5)
+            new:SetDrawTier(DT_HIGH)
+
+            --disable mouse events on status controls
+            new:SetMouseEnabled(false)
+            new:GetNamedChild("Texture"):SetMouseEnabled(false)
 
             name:SetHidden(true)
             --stat:SetHidden(true)
@@ -503,9 +551,16 @@ local function ReshapeSlot(control, isGrid, width, height)
             local LIST_SLOT_BACKGROUND = "EsoUI/Art/Miscellaneous/listItem_backdrop.dds"
             local LIST_SLOT_HOVER = "EsoUI/Art/Miscellaneous/listitem_highlight.dds"
 
-            if button then button:SetAnchor(CENTER, control, TOPLEFT, 47, 26) end
+            if button then button:SetAnchor(CENTER, control, TOPLEFT, 70, 26) end
 
-            if new then new:SetAnchor(CENTER, control, TOPLEFT, 20, 27) end
+            if new then
+                new:SetDimensions(32, 32)
+                new:SetAnchor(CENTER, control, TOPLEFT, 20, 27)
+
+                --enable mouse events on status controls
+                new:SetMouseEnabled(true)
+                new:GetNamedChild("Texture"):SetMouseEnabled(true)
+            end
 
             if name then name:SetHidden(false) end
             --if stat then stat:SetHidden(false) end
@@ -592,28 +647,26 @@ end
 ---------------------------------------------------------------------------
 local integrated = false
 function IntegrateInventoryGridView() 
-	zo_callLater(function() 
-		if integrated == false and InventoryGridView ~= nil then		
-			IGV = InventoryGridView
-			util = IGV.util
-			settings = IGV.settings
-			adapter = IGV.adapter
-			--integrate
-			InventoryGridView.adapter.ScrollController = adapter_ScrollController
-			
-			InventoryGridView.adapter.ToggleGrid = adapter_ToggleGrid
-			
-			InventoryGridView.util.ReshapeSlots = util_ReshapeSlots 
-			 
-			integrated = true
-			
-			--fix prehook  	
-			ZO_PreHook("ZO_ScrollList_UpdateScroll", adapter_ScrollController)
-		end
-	end, 10) 
+    zo_callLater(function() 
+        if integrated == false and InventoryGridView ~= nil then        
+            IGV = InventoryGridView
+            util = IGV.util
+            settings = IGV.settings
+            adapter = IGV.adapter
+            --integrate
+            InventoryGridView.adapter.ScrollController = adapter_ScrollController
+            
+            InventoryGridView.adapter.ToggleGrid = adapter_ToggleGrid
+            
+            InventoryGridView.util.ReshapeSlots = util_ReshapeSlots 
+             
+            integrated = true
+            
+            --fix prehook   
+            ZO_PreHook("ZO_ScrollList_UpdateScroll", adapter_ScrollController)
+        end
+    end, 10) 
 end 
 
 EVENT_MANAGER:RegisterForEvent(AutoCategory.name, EVENT_PLAYER_ACTIVATED, IntegrateInventoryGridView)
-
-		
 ------------------------modified end--------------------------

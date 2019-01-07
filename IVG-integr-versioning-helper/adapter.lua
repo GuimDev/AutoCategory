@@ -180,6 +180,12 @@ local function IGV_ScrollList_UpdateScroll_Grid(self)
     local currentY = 0
     local lastIndex = 1
     local gridIconSize = settings.GetGridIconSize()
+    local isGrid = settings.IsGrid(IGVId)
+    if isGrid then
+        self.controlHeight = gridIconSize
+    else
+        self.controlHeight = 52
+    end
     local contentsWidth = self.contents:GetWidth()
     local contentsWidthMinusPadding = contentsWidth - LEFT_PADDING
     local itemsPerRow = zo_floor(contentsWidthMinusPadding / gridIconSize)
